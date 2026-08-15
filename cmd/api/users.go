@@ -15,6 +15,7 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
+func (cfg *apiConfig) resetHandler(w http.ResponseWriter, r *http.Request) {
 	if cfg.Platform != "dev" {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("Forbidden"))

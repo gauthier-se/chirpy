@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gauthier-se/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -13,26 +14,42 @@ type Chirp struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Body      string    `json:"body"`
-	UserID  string    `json:"user_id"`
+	UserID    uuid.UUID `json:"user_id"`
 }
 
 func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body      string    `json:"body"`
-		UserID  string    `json:"user_id"`
+		Body   string `json:"body"`
+		UserID string `json:"user_id"`
 	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, 500, "something went wrong")
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	dbChirp, err := cfg.DB.CreateChirp(r.Context(), params.Email)
+	if len(params.Body) > 140 {
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
+		return
+	}
+
+	parsedUserID, err := uuid.Parse(params.UserID)
 	if err != nil {
-		respondWithError(w, 500, "couldn't create chirp")
+		respondWithError(w, http.StatusBadRequest, "Invalid user ID format")
+		return
+	}
+
+	cleanedBody := replaceProfaneWords(params.Body)
+
+	dbChirp, err := cfg.DB.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body:   cleanedBody,
+		UserID: parsedUserID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp")
 		return
 	}
 
@@ -40,30 +57,9 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 		ID:        dbChirp.ID,
 		CreatedAt: dbChirp.CreatedAt,
 		UpdatedAt: dbChirp.UpdatedAt,
-		Body: dbChirp,
-		UserID: dbChirp
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
 	}
 
-	responseWithJSON(w, 201, responseChirp)
-}
-
-func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Body string `json:"body"`
-	}
-	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
-	err := decoder.Decode(&params)
-	if err != nil {
-		respondWithError(w, 500, "something went wrong")
-		return
-	}
-
-	if len(params.Body) > 140 {
-		respondWithError(w, 400, "chirp is too long")
-		return
-	}
-
-	cleanedBody := replaceProfaneWords(params.Body)
-	responseWithJSON(w, 200, map[string]string{"cleaned_body": cleanedBody})
+	responseWithJSON(w, http.StatusCreated, responseChirp)
 }
