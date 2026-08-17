@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"encoding/hex"
 	"net/http"
 	"testing"
 	"time"
@@ -87,6 +88,20 @@ func TestValidateJWTRejectsWrongSecret(t *testing.T) {
 func TestValidateJWTRejectsMalformedToken(t *testing.T) {
 	if _, err := ValidateJWT("not.a.jwt", "super-secret"); err == nil {
 		t.Fatal("ValidateJWT() error = nil for a malformed token, want an error")
+	}
+}
+
+func TestMakeRefreshToken(t *testing.T) {
+	token := MakeRefreshToken()
+
+	if len(token) != 64 {
+		t.Errorf("MakeRefreshToken() length = %d, want 64 hex chars (32 bytes)", len(token))
+	}
+	if _, err := hex.DecodeString(token); err != nil {
+		t.Errorf("MakeRefreshToken() = %q, not valid hex: %v", token, err)
+	}
+	if other := MakeRefreshToken(); other == token {
+		t.Error("MakeRefreshToken() returned the same token twice, want random values")
 	}
 }
 

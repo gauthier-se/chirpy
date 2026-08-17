@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -52,6 +54,13 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	}
 
 	return userID, nil
+}
+
+func MakeRefreshToken() string {
+	key := make([]byte, 32)
+	// crypto/rand.Read never returns an error; it panics if the system source fails.
+	rand.Read(key)
+	return hex.EncodeToString(key)
 }
 
 func GetBearerToken(headers http.Header) (string, error) {
