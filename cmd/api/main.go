@@ -20,6 +20,11 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET must be set")
+	}
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
@@ -28,8 +33,9 @@ func main() {
 	dbQueries := database.New(db)
 
 	apiCfg := apiConfig{
-		DB: dbQueries,
-		Platform: platform,
+		DB:        dbQueries,
+		Platform:  platform,
+		JWTSecret: jwtSecret,
 	}
 
 	mux := apiCfg.setupRoutes()
