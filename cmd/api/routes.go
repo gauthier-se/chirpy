@@ -16,6 +16,8 @@ func (cfg *apiConfig) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /api/refresh", cfg.refreshHandler)
 	mux.HandleFunc("POST /api/revoke", cfg.revokeHandler)
 
+	mux.HandleFunc("POST /api/polka/webhooks", cfg.polkaWebhookHandler)
+
 	mux.HandleFunc("POST /api/chirps", cfg.createChirpHandler)
 	mux.HandleFunc("GET /api/chirps", cfg.getChirpsHandler)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.getChirpHandler)
